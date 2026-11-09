@@ -1,7 +1,7 @@
 {
   "id": "ms-todo-desk",
   "name": "Microsoft To Do (desktop)",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": "Kamal Thampi <21134785+khamsakamal48@users.noreply.github.com>",
   "description": "Your Microsoft To Do tasks as a tile on the wallpaper: every list, tick a task off and it completes everywhere. Shares the mstodo sign-in with the ms-todo bar plugin.",
   "license": "MIT",
@@ -154,14 +154,6 @@
         "decimals": 0
       },
       {
-        "key": "lists",
-        "type": "text",
-        "label": "Lists to show",
-        "group": "Tasks",
-        "default": "",
-        "placeholder": "Comma-separated, e.g. My Actions, Waiting On (blank = all)"
-      },
-      {
         "key": "hideEmptyLists",
         "type": "toggle",
         "label": "Hide empty lists",
@@ -176,31 +168,42 @@
         "default": false
       },
       {
+        "key": "lists",
+        "type": "text",
+        "label": "Lists to show",
+        "group": "Tasks",
+        "default": "",
+        "placeholder": "Comma-separated, e.g. My Actions, Waiting On (blank = all)"
+      },
+      {
         "key": "tileWidth",
-        "type": "int",
+        "type": "slider",
         "label": "Tile width",
         "group": "Tile",
         "default": 360,
         "min": 260,
-        "max": 600
+        "max": 600,
+        "decimals": 0
       },
       {
         "key": "tileHeight",
-        "type": "int",
+        "type": "slider",
         "label": "Max list height",
         "group": "Tile",
         "default": 380,
         "min": 160,
-        "max": 900
+        "max": 900,
+        "decimals": 0
       },
       {
         "key": "refreshMinutes",
-        "type": "int",
+        "type": "slider",
         "label": "Refresh every (minutes)",
         "group": "Sync",
         "default": 5,
         "min": 1,
-        "max": 60
+        "max": 60,
+        "decimals": 0
       },
       {
         "key": "mstodoPath",

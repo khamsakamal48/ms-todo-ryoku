@@ -83,7 +83,8 @@ menu doesn't stick. The menu updates, but `Desktop.qml` fails with
 `TypeError: Cannot read property 'push' of undefined` (its `_settingsQueue` is
 never declared). Size and Opacity are unaffected. Until that is fixed upstream,
 change settings in **Ryoku Settings › Add-ons › Microsoft To Do**, which saves
-correctly and applies live.
+correctly and applies live. (The Stage Editor shows only Size / Lock / Remove for
+plugins; it has no plugin settings.)
 
 ## Privacy and files
 

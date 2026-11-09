@@ -1,7 +1,7 @@
 {
   "id": "ms-todo",
   "name": "Microsoft To Do",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": "Kamal Thampi <21134785+khamsakamal48@users.noreply.github.com>",
   "description": "Your Microsoft To Do tasks on the bar: a count on the glyph, every list in the panel, tick a task off and it completes everywhere. Uses its own Microsoft sign-in through the mstodo command.",
   "license": "MIT",
@@ -134,14 +134,6 @@
         ]
       },
       {
-        "key": "lists",
-        "type": "text",
-        "label": "Lists to show",
-        "group": "Tasks",
-        "default": "",
-        "placeholder": "Comma-separated, e.g. My Actions, Waiting On (blank = all)"
-      },
-      {
         "key": "hideEmptyLists",
         "type": "toggle",
         "label": "Hide empty lists",
@@ -154,6 +146,14 @@
         "label": "Show completed tasks",
         "group": "Tasks",
         "default": false
+      },
+      {
+        "key": "lists",
+        "type": "text",
+        "label": "Lists to show",
+        "group": "Tasks",
+        "default": "",
+        "placeholder": "Comma-separated, e.g. My Actions, Waiting On (blank = all)"
       },
       {
         "key": "badge",
