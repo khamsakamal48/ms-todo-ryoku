@@ -67,7 +67,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "checklist"
                         size: 20 * view.s
-                        color: view.st.accent
+                        color: view.st.accentText
                     }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
@@ -92,7 +92,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: view.phase === "ready"
                 text: view.open
-                color: view.st.accent
+                color: view.st.accentText
                 font.family: view.st.display
                 font.pixelSize: 40 * view.s
                 font.weight: Font.DemiBold
@@ -286,7 +286,7 @@ Item {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "task_alt"
                         size: 34 * view.s
-                        color: view.st.accent
+                        color: view.st.accentText
                     }
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter

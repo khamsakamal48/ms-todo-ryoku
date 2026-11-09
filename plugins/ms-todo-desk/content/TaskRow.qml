@@ -85,13 +85,13 @@ Item {
         height: 20 * row.s
         width: chipText.implicitWidth + 16 * row.s
         radius: height / 2
-        color: row.overdue ? row.st.soft(row.st.danger, 0.14)
-             : row.dueToday ? row.st.soft(row.st.accent, 0.14) : row.st.fill
+        color: row.overdue ? row.st.soft(row.st.danger, row.st.dark ? 0.24 : 0.14)
+             : row.dueToday ? row.st.soft(row.st.accent, row.st.dark ? 0.26 : 0.14) : row.st.fill
         Text {
             id: chipText
             anchors.centerIn: parent
             text: row.dueText
-            color: row.overdue ? row.st.danger : row.dueToday ? row.st.accent : row.st.ink2
+            color: row.overdue ? row.st.dangerText : row.dueToday ? row.st.accentText : row.st.ink2
             font.family: row.st.font
             font.pixelSize: 11 * row.s
             font.weight: Font.DemiBold

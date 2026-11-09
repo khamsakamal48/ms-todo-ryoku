@@ -46,6 +46,9 @@ QtObject {
         : (dark ? "#0a84ff" : "#007aff")
     readonly property color danger: dark ? "#ff453a" : "#e5372c"
     readonly property color accentInk: "#ffffff"
+    // text-weight variants: brighter on dark glass so small coloured text keeps contrast
+    readonly property color accentText: dark ? Qt.lighter(accent, 1.45) : accent
+    readonly property color dangerText: dark ? Qt.lighter(danger, 1.3) : danger
     function soft(c, a) { return Qt.rgba(c.r, c.g, c.b, a); }
 
     // ---- type

@@ -4,6 +4,11 @@ Your Microsoft To Do tasks on the [Ryoku](https://ryoku.sh) desktop: a frosted-g
 tile on the wallpaper and an optional bar glyph with a panel. Tick a task and it
 is completed in Microsoft To Do on every device.
 
+<p align="center">
+  <img src="plugins/ms-todo-desk/assets/preview-widget.png" width="360" alt="Light glass tile">
+  <img src="plugins/ms-todo-desk/assets/preview-widget-dark.png" width="360" alt="Dark glass tile">
+</p>
+
 - **ms-todo-desk**: desktop tile. Translucency, blur, light/dark glass, accent, font.
 - **ms-todo**: bar glyph with a count (open / due / high importance) and a panel.
 - **mstodo**: a small Python command (standard library only) that signs in and talks
@@ -71,6 +76,15 @@ Ryoku's own **Opacity** in the tile menu fades the whole tile, text included.
 
 Outlook's *Flagged Emails* list is skipped unless you name it in *Lists to show*.
 
+## Known Ryoku issue: tile-menu settings don't save
+
+In Ryoku 1.0.7, changing a plugin setting from the desktop tile's right-click
+menu doesn't stick. The menu updates, but `Desktop.qml` fails with
+`TypeError: Cannot read property 'push' of undefined` (its `_settingsQueue` is
+never declared). Size and Opacity are unaffected. Until that is fixed upstream,
+change settings in **Ryoku Settings › Add-ons › Microsoft To Do**, which saves
+correctly and applies live.
+
 ## Privacy and files
 
 - `~/.config/mstodo/config.json`: client and tenant IDs
@@ -86,7 +100,8 @@ Sign out with the ⇥ button on the tile (click twice), or `mstodo logout`.
 
 `plugins/ms-todo` is the source of truth for the shared files; after editing,
 run `scripts/sync-shared.sh` (and `--check` before committing). Then
-`ryoku plugin validate plugins/<id>`. To reinstall:
+`ryoku plugin validate plugins/<id>`. `scripts/preview/render.sh` regenerates
+the preview images from the real view with dummy tasks. To reinstall:
 `ryoku plugin remove <id> && ryoku plugin add plugins/<id> --yes`. Note that
 **remove** clears the plugin's settings and placement.
 
