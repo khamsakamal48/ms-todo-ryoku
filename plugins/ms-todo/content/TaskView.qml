@@ -14,6 +14,9 @@ Item {
     property real pad: 20 * s
 
     readonly property string phase: service ? service.phase : "loading"
+    property bool composing: false
+    readonly property bool editing: composing && composer.editing
+    function compose() { composing = true; composer.open(); }
     readonly property int open: service ? service.openCount : 0
     readonly property int due: service ? service.dueCount : 0
 
@@ -123,6 +126,18 @@ Item {
                 maximumLineCount: 3
                 elide: Text.ElideRight
             }
+        }
+
+        // ------------------------------------------------ new task
+        Composer {
+            id: composer
+            visible: view.composing && view.phase === "ready"
+            width: parent.width
+            height: visible ? implicitHeight : 0
+            st: view.st
+            s: view.s
+            service: view.service
+            onClosed: view.composing = false
         }
 
         // ------------------------------------------------ setup
@@ -290,7 +305,7 @@ Item {
                     }
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "All done"
+                        text: "All done · tap + to add a task"
                         color: view.st.ink2
                         font.family: view.st.font
                         font.pixelSize: 13 * view.s
@@ -388,6 +403,11 @@ Item {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 8 * view.s
+                RoundIcon {
+                    st: view.st; s: view.s; icon: view.composing ? "close" : "add"
+                    tinted: true
+                    onClicked: view.composing ? (view.composing = false) : view.compose()
+                }
                 RoundIcon {
                     st: view.st; s: view.s; icon: "refresh"
                     spinning: view.service ? view.service.refreshing : false

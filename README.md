@@ -2,11 +2,15 @@
 
 Your Microsoft To Do tasks on the [Ryoku](https://ryoku.sh) desktop: a frosted-glass
 tile on the wallpaper and an optional bar glyph with a panel. Tick a task and it
-is completed in Microsoft To Do on every device.
+is completed in Microsoft To Do on every device. Press **+** to add a task: pick
+the list, a due day, and a reminder (later today, this evening, tomorrow 9:00,
+or any day and time you type). Reminders ring on your phone and in Outlook like
+any To Do reminder.
 
 <p align="center">
   <img src="plugins/ms-todo-desk/assets/preview-widget.png" width="360" alt="Light glass tile">
   <img src="plugins/ms-todo-desk/assets/preview-widget-dark.png" width="360" alt="Dark glass tile">
+  <img src="plugins/ms-todo-desk/assets/preview-widget-add.png" width="360" alt="Adding a task with a reminder">
 </p>
 
 - **ms-todo-desk**: desktop tile. Translucency, blur, light/dark glass, accent, font.

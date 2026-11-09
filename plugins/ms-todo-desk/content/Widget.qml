@@ -20,6 +20,10 @@ Item {
     readonly property real tileW: (cfg && cfg.tileWidth ? cfg.tileWidth : 360) * root.s
     readonly property real bodyH: (cfg && cfg.tileHeight ? cfg.tileHeight : 380) * root.s
 
+    // While the new-task card has a focused field, the desktop host gives this
+    // tile the keyboard (Ryoku reads `editing` on the content root).
+    readonly property bool editing: view.editing
+
     implicitWidth: tileW
     implicitHeight: view.implicitHeight
 

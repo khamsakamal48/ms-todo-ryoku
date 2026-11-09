@@ -13,7 +13,9 @@ own refresh token, separate from any other tool on this machine.
   mstodo tasks [--lists A,B] [--completed]         every list with its tasks, as JSON
                                                    (Flagged Emails only when named in --lists)
   mstodo done LIST_ID TASK_ID [--undo]             complete (or reopen) a task
-  mstodo add LIST_ID TITLE                         add a task
+  mstodo add LIST_ID TITLE [--due YYYY-MM-DD] [--remind YYYY-MM-DDTHH:MM] [--high]
+                                                   add a task (times are local)
+  mstodo delete LIST_ID TASK_ID                    delete a task
 
 Every command prints JSON on stdout. Failures print {"error": "...", "kind": "..."}
 and exit non-zero. kind is one of: config, auth, network, graph, usage.
@@ -212,9 +214,34 @@ def cmd_logout(args):
     out({"ok": True})
 
 
+def local_of(dt):
+    """Graph dateTimeTimeZone -> naive local datetime (None if absent)."""
+    if not dt or not dt.get("dateTime"):
+        return None
+    raw = dt["dateTime"][:19]
+    try:
+        v = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if (dt.get("timeZone") or "UTC").upper() in ("UTC", "ETC/UTC", "GMT"):
+        v = v.replace(tzinfo=timezone.utc).astimezone().replace(tzinfo=None)
+    return v
+
+
+def utc_of(local_naive):
+    """Naive local datetime -> Graph dateTimeTimeZone in UTC."""
+    v = local_naive.astimezone(timezone.utc)   # naive is taken as local time
+    return {"dateTime": v.strftime("%Y-%m-%dT%H:%M:%S"), "timeZone": "UTC"}
+
+
 def task_row(t):
+    # To Do keeps a due *date* (the day of the stored dateTime), so read it as is;
+    # a reminder is a real instant, so convert it to local time.
     due = (t.get("dueDateTime") or {}).get("dateTime", "")[:10]
-    return {"id": t["id"], "title": t.get("title", ""), "due": due,
+    rem = local_of(t.get("reminderDateTime")) if t.get("isReminderOn") else None
+    return {"id": t["id"], "title": t.get("title", ""),
+            "due": due,
+            "reminder": rem.strftime("%Y-%m-%dT%H:%M") if rem else "",
             "importance": t.get("importance", "normal"),
             "done": t.get("status") == "completed"}
 
@@ -267,15 +294,48 @@ def cmd_done(args):
     out({"ok": True, "task": task_row(t)})
 
 
+def opt(args, name):
+    if name in args:
+        i = args.index(name)
+        if i + 1 < len(args):
+            return args[i + 1]
+        raise Fail(f"{name} needs a value", "usage")
+    return None
+
+
 def cmd_add(args):
-    if len(args) < 2 or not args[1].strip():
-        raise Fail("usage: mstodo add LIST_ID TITLE", "usage")
-    t = graph("POST", f"/me/todo/lists/{args[0]}/tasks", {"title": args[1].strip()})
+    usage = "usage: mstodo add LIST_ID TITLE [--due YYYY-MM-DD] [--remind YYYY-MM-DDTHH:MM] [--high]"
+    if len(args) < 2 or not args[1].strip() or args[1].startswith("--"):
+        raise Fail(usage, "usage")
+    body = {"title": args[1].strip()}
+    try:
+        due = opt(args, "--due")
+        if due:
+            datetime.strptime(due, "%Y-%m-%d")      # validate
+            # To Do stores the due *day*; midnight UTC keeps that day intact
+            body["dueDateTime"] = {"dateTime": due + "T00:00:00", "timeZone": "UTC"}
+        rem = opt(args, "--remind")
+        if rem:
+            when = datetime.strptime(rem[:16], "%Y-%m-%dT%H:%M")
+            body["reminderDateTime"] = utc_of(when)
+            body["isReminderOn"] = True
+    except ValueError:
+        raise Fail(usage, "usage")
+    if "--high" in args:
+        body["importance"] = "high"
+    t = graph("POST", f"/me/todo/lists/{args[0]}/tasks", body)
     out({"ok": True, "task": task_row(t)})
 
 
+def cmd_delete(args):
+    if len(args) < 2:
+        raise Fail("usage: mstodo delete LIST_ID TASK_ID", "usage")
+    graph("DELETE", f"/me/todo/lists/{args[0]}/tasks/{args[1]}")
+    out({"ok": True})
+
+
 COMMANDS = {"setup": cmd_setup, "status": cmd_status, "login": cmd_login, "logout": cmd_logout,
-            "tasks": cmd_tasks, "done": cmd_done, "add": cmd_add}
+            "tasks": cmd_tasks, "done": cmd_done, "add": cmd_add, "delete": cmd_delete}
 
 
 def main(argv):

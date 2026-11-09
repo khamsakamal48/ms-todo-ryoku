@@ -16,7 +16,18 @@ Item {
 
     readonly property bool done: !!task.done
     readonly property bool high: task.importance === "high"
-    implicitHeight: Math.max(22 * s, label.implicitHeight) + 14 * s
+    readonly property string remind: task.reminder || ""
+    function remindLabel() {
+        if (!remind) return "";
+        const d = new Date(remind);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const day = new Date(d); day.setHours(0, 0, 0, 0);
+        const n = Math.round((day - today) / 86400000);
+        const t = Qt.formatTime(d, "HH:mm");
+        return n === 0 ? "Today " + t : n === 1 ? "Tomorrow " + t : n === -1 ? "Yesterday " + t
+             : Qt.formatDate(d, "d MMM") + " " + t;
+    }
+    implicitHeight: Math.max(22 * s, textCol.implicitHeight) + 14 * s
 
     // hover wash
     Rectangle {
@@ -57,13 +68,17 @@ Item {
         }
     }
 
-    Text {
-        id: label
+    Column {
+        id: textCol
         anchors.left: box.right
         anchors.leftMargin: 12 * row.s
         anchors.right: chip.visible ? chip.left : parent.right
         anchors.rightMargin: chip.visible ? 10 * row.s : 0
         anchors.verticalCenter: parent.verticalCenter
+        spacing: 2 * row.s
+    Text {
+        id: label
+        width: parent.width
         text: row.task.title || ""
         color: row.done ? row.st.ink3 : row.st.ink
         font.family: row.st.font
@@ -74,6 +89,24 @@ Item {
         elide: Text.ElideRight
         lineHeight: 1.08
         Behavior on color { ColorAnimation { duration: 160 } }
+    }
+    Row {
+        visible: row.remind !== "" && !row.done
+        spacing: 3 * row.s
+        Icon {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "notifications"
+            size: 12 * row.s
+            color: row.st.ink3
+        }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: row.remindLabel()
+            color: row.st.ink3
+            font.family: row.st.font
+            font.pixelSize: 11.5 * row.s
+        }
+    }
     }
 
     // due capsule

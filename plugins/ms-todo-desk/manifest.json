@@ -1,9 +1,9 @@
 {
   "id": "ms-todo-desk",
   "name": "Microsoft To Do (desktop)",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "author": "Kamal Thampi <21134785+khamsakamal48@users.noreply.github.com>",
-  "description": "Your Microsoft To Do tasks as a tile on the wallpaper: every list, tick a task off and it completes everywhere. Shares the mstodo sign-in with the ms-todo bar plugin.",
+  "description": "Your Microsoft To Do tasks as a tile on the wallpaper: every list, add tasks with a due day and a reminder, tick them off and it completes everywhere. Shares the mstodo sign-in with the ms-todo bar plugin.",
   "license": "MIT",
   "official": false,
   "tags": [
@@ -28,8 +28,11 @@
     "content/Icon.qml",
     "content/RoundIcon.qml",
     "content/Pill.qml",
+    "content/Chip.qml",
+    "content/Composer.qml",
     "assets/preview-widget.png",
-    "assets/preview-widget-dark.png"
+    "assets/preview-widget-dark.png",
+    "assets/preview-widget-add.png"
   ],
   "capabilities": {
     "densities": [

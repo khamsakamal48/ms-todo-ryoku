@@ -50,6 +50,8 @@ Item {
     property bool stale: false
     property bool refreshing: false
     property var pending: ({})      // taskId -> true while a tick is in flight
+    property string lastListId: ""  // the list the composer used last (this session)
+    property int _tmp: 0
 
     // device-code sign-in
     property string loginCode: ""
@@ -132,6 +134,23 @@ Item {
         const cmd = [svc.mstodo, "done", listId, taskId];
         if (wasDone) cmd.push("--undo");
         actions.enqueue(cmd, taskId);
+    }
+
+    // Add a task (optionally due on a day, with a reminder "yyyy-MM-ddTHH:mm",
+    // marked important). Shows it at once as pending, then syncs.
+    function addTask(listId, title, due, remind, high) {
+        svc.lastListId = listId;
+        const tmpId = "pending-" + (++svc._tmp);
+        const row = { id: tmpId, title: title, due: due || "", reminder: remind || "",
+                      importance: high ? "high" : "normal", done: false };
+        svc.lists = svc.lists.map(l => l.id !== listId ? l
+            : Object.assign({}, l, { tasks: [row].concat(l.tasks) }));
+        const p = Object.assign({}, svc.pending); p[tmpId] = true; svc.pending = p;
+        const cmd = [svc.mstodo, "add", listId, title];
+        if (due) cmd.push("--due", due);
+        if (remind) cmd.push("--remind", remind);
+        if (high) cmd.push("--high");
+        actions.enqueue(cmd, tmpId);
     }
 
     // ---------------------------------------------------------- processes
@@ -250,6 +269,8 @@ Item {
                     else svc.fetchTasks();   // re-sync: drops the optimistic flip
                 } else if (job && job.cmd[1] === "logout") {
                     svc.lists = []; svc.account = ""; svc.error = ""; svc.phase = "signin";
+                } else if (job && job.cmd[1] === "add") {
+                    svc.fetchTasks();   // swap the pending row for the real one
                 } else if (actions.queue.length === 0) {
                     settle.restart();
                 }

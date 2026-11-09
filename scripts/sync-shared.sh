@@ -7,7 +7,8 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 src="$root/plugins/ms-todo" dst="$root/plugins/ms-todo-desk"
 shared=(service/Main.qml content/TaskView.qml content/TaskRow.qml content/Style.qml
-	content/Glass.qml content/Icon.qml content/RoundIcon.qml content/Pill.qml)
+	content/Glass.qml content/Icon.qml content/RoundIcon.qml content/Pill.qml
+	content/Chip.qml content/Composer.qml)
 status=0
 for f in "${shared[@]}"; do
 	if [ "${1:-}" = "--check" ]; then

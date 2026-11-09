@@ -30,11 +30,13 @@ Window {
         property string loginUrl: ""
         property bool loggingIn: false
         property var pending: ({})
+        property string lastListId: ""
+        function addTask() {}
         property var lists: [
             { id: "a", name: "My Actions", tasks: [
                 { id: "1", title: "Draft the Q2 budget review", due: iso(0), importance: "high", done: false },
                 { id: "2", title: "Book flights for the team offsite", due: iso(-1), importance: "normal", done: false },
-                { id: "3", title: "Send onboarding pack to the new hire", due: iso(1), importance: "normal", done: false },
+                { id: "3", title: "Send onboarding pack to the new hire", due: iso(1), reminder: iso(1) + "T09:30", importance: "normal", done: false },
                 { id: "4", title: "Review pull request #128", due: "", importance: "normal", done: false },
                 { id: "5", title: "Renew the domain certificates", due: iso(9), importance: "normal", done: false },
                 { id: "6", title: "Call the plumber", due: "", importance: "normal", done: true } ] },
@@ -123,8 +125,9 @@ Window {
         id: shoot
         interval: 700; running: true
         onTriggered: { win.contentItem.grabToImage(r => {
-            r.saveToFile(win.out + "/preview-widget" + (win.mode === "dark" ? "-dark" : "") + ".png");
+            r.saveToFile(win.out + "/preview-widget" + (view.composing ? "-add" : win.mode === "dark" ? "-dark" : "") + ".png");
             if (win.mode === "light") { win.mode = "dark"; shoot.restart(); }
+            else if (!view.composing) { win.mode = "light"; view.compose(); shoot.restart(); }
             else Qt.quit();
         }) }
     }

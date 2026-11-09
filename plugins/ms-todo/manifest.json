@@ -1,9 +1,9 @@
 {
   "id": "ms-todo",
   "name": "Microsoft To Do",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "author": "Kamal Thampi <21134785+khamsakamal48@users.noreply.github.com>",
-  "description": "Your Microsoft To Do tasks on the bar: a count on the glyph, every list in the panel, tick a task off and it completes everywhere. Uses its own Microsoft sign-in through the mstodo command.",
+  "description": "Your Microsoft To Do tasks on the bar: a count on the glyph, every list in the panel, add tasks with a due day and a reminder, tick them off and it completes everywhere. Uses its own Microsoft sign-in through the mstodo command.",
   "license": "MIT",
   "official": false,
   "tags": [
@@ -31,8 +31,11 @@
     "content/Icon.qml",
     "content/RoundIcon.qml",
     "content/Pill.qml",
+    "content/Chip.qml",
+    "content/Composer.qml",
     "assets/preview-widget.png",
-    "assets/preview-widget-dark.png"
+    "assets/preview-widget-dark.png",
+    "assets/preview-widget-add.png"
   ],
   "capabilities": {
     "densities": [
