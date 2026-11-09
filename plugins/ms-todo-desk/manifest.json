@@ -1,0 +1,229 @@
+{
+  "id": "ms-todo-desk",
+  "name": "Microsoft To Do (desktop)",
+  "version": "0.3.0",
+  "author": "Kamal Thampi <21134785+khamsakamal48@users.noreply.github.com>",
+  "description": "Your Microsoft To Do tasks as a tile on the wallpaper: every list, tick a task off and it completes everywhere. Shares the mstodo sign-in with the ms-todo bar plugin.",
+  "license": "MIT",
+  "official": false,
+  "tags": [
+    "todo",
+    "microsoft",
+    "tasks",
+    "productivity",
+    "desktop-widget"
+  ],
+  "hosts": [
+    "desktopWidget"
+  ],
+  "entryPoints": {
+    "main": "service/Main.qml",
+    "content": "content/Widget.qml"
+  },
+  "files": [
+    "content/TaskView.qml",
+    "content/TaskRow.qml",
+    "content/Style.qml",
+    "content/Glass.qml",
+    "content/Icon.qml",
+    "content/RoundIcon.qml",
+    "content/Pill.qml"
+  ],
+  "capabilities": {
+    "densities": [
+      "compact",
+      "full"
+    ],
+    "network": [
+      "login.microsoftonline.com",
+      "graph.microsoft.com",
+      "to-do.office.com"
+    ]
+  },
+  "defaults": {
+    "host": "desktopWidget",
+    "label": "To Do",
+    "desktopWidget": {
+      "bg": "none"
+    }
+  },
+  "dependencies": {
+    "commands": [
+      "mstodo",
+      "xdg-open",
+      "wl-copy"
+    ]
+  },
+  "metadata": {
+    "settings": [
+      {
+        "key": "appearance",
+        "type": "choice",
+        "label": "Appearance",
+        "group": "Look",
+        "default": "light",
+        "options": [
+          {
+            "value": "light",
+            "label": "Light glass"
+          },
+          {
+            "value": "dark",
+            "label": "Dark glass"
+          },
+          {
+            "value": "theme",
+            "label": "Follow theme"
+          }
+        ]
+      },
+      {
+        "key": "accent",
+        "type": "choice",
+        "label": "Accent",
+        "group": "Look",
+        "default": "blue",
+        "options": [
+          {
+            "value": "blue",
+            "label": "Blue"
+          },
+          {
+            "value": "theme",
+            "label": "Theme accent"
+          },
+          {
+            "value": "green",
+            "label": "Green"
+          },
+          {
+            "value": "orange",
+            "label": "Orange"
+          },
+          {
+            "value": "purple",
+            "label": "Purple"
+          },
+          {
+            "value": "pink",
+            "label": "Pink"
+          }
+        ]
+      },
+      {
+        "key": "font",
+        "type": "choice",
+        "label": "Font",
+        "group": "Look",
+        "default": "inter",
+        "options": [
+          {
+            "value": "inter",
+            "label": "Inter"
+          },
+          {
+            "value": "google",
+            "label": "Google Sans Flex"
+          },
+          {
+            "value": "theme",
+            "label": "Theme font"
+          }
+        ]
+      },
+      {
+        "key": "translucency",
+        "type": "slider",
+        "label": "Translucency",
+        "group": "Look",
+        "default": 52,
+        "min": 0,
+        "max": 100,
+        "decimals": 0
+      },
+      {
+        "key": "blur",
+        "type": "slider",
+        "label": "Blur",
+        "group": "Look",
+        "default": 100,
+        "min": 0,
+        "max": 100,
+        "decimals": 0
+      },
+      {
+        "key": "lists",
+        "type": "text",
+        "label": "Lists to show",
+        "group": "Tasks",
+        "default": "",
+        "placeholder": "Comma-separated, e.g. My Actions, Waiting On (blank = all)"
+      },
+      {
+        "key": "hideEmptyLists",
+        "type": "toggle",
+        "label": "Hide empty lists",
+        "group": "Tasks",
+        "default": true
+      },
+      {
+        "key": "showCompleted",
+        "type": "toggle",
+        "label": "Show completed tasks",
+        "group": "Tasks",
+        "default": false
+      },
+      {
+        "key": "tileWidth",
+        "type": "int",
+        "label": "Tile width",
+        "group": "Tile",
+        "default": 360,
+        "min": 260,
+        "max": 600
+      },
+      {
+        "key": "tileHeight",
+        "type": "int",
+        "label": "Max list height",
+        "group": "Tile",
+        "default": 380,
+        "min": 160,
+        "max": 900
+      },
+      {
+        "key": "refreshMinutes",
+        "type": "int",
+        "label": "Refresh every (minutes)",
+        "group": "Sync",
+        "default": 5,
+        "min": 1,
+        "max": 60
+      },
+      {
+        "key": "mstodoPath",
+        "type": "text",
+        "label": "mstodo command",
+        "group": "Sync",
+        "default": "",
+        "placeholder": "Blank = ~/.local/bin/mstodo"
+      },
+      {
+        "key": "clientId",
+        "type": "text",
+        "label": "Application (client) ID",
+        "group": "Account",
+        "default": "",
+        "placeholder": "From your Entra app registration (blank = mstodo config)"
+      },
+      {
+        "key": "tenant",
+        "type": "text",
+        "label": "Directory (tenant) ID",
+        "group": "Account",
+        "default": "",
+        "placeholder": "Tenant ID, or organizations / consumers / common"
+      }
+    ]
+  }
+}

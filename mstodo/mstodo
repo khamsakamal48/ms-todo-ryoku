@@ -1,0 +1,297 @@
+#!/usr/bin/env python3
+"""mstodo: a tiny Microsoft To Do client for the Ryoku ms-todo plugins.
+
+Standard library only. Signs in with the OAuth device-code flow (delegated,
+Tasks.ReadWrite: it can only see and change *your* To Do tasks) and keeps its
+own refresh token, separate from any other tool on this machine.
+
+  mstodo setup --client-id ID [--tenant TENANT]   write the config (once)
+  mstodo status                                    {"configured","signedIn","account"}
+  mstodo login                                     device-code sign-in; prints JSON lines:
+                                                   {"code","url","expiresIn"} then {"ok":true}
+  mstodo logout                                    forget the token
+  mstodo tasks [--lists A,B] [--completed]         every list with its tasks, as JSON
+                                                   (Flagged Emails only when named in --lists)
+  mstodo done LIST_ID TASK_ID [--undo]             complete (or reopen) a task
+  mstodo add LIST_ID TITLE                         add a task
+
+Every command prints JSON on stdout. Failures print {"error": "...", "kind": "..."}
+and exit non-zero. kind is one of: config, auth, network, graph, usage.
+
+Files
+  config  $XDG_CONFIG_HOME/mstodo/config.json   {"client_id", "tenant"}
+  token   $XDG_STATE_HOME/mstodo/token.json     refresh token, mode 0600
+  cache   $XDG_CACHE_HOME/mstodo/tasks.json     last good `tasks` result (offline view)
+Env overrides: MSTODO_CLIENT_ID, MSTODO_TENANT.
+"""
+import json, os, sys, time, urllib.error, urllib.parse, urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+
+HOME = Path.home()
+CFG = Path(os.environ.get("XDG_CONFIG_HOME") or HOME / ".config") / "mstodo" / "config.json"
+TOKEN = Path(os.environ.get("XDG_STATE_HOME") or HOME / ".local/state") / "mstodo" / "token.json"
+CACHE = Path(os.environ.get("XDG_CACHE_HOME") or HOME / ".cache") / "mstodo" / "tasks.json"
+GRAPH = "https://graph.microsoft.com/v1.0"
+SCOPE = "Tasks.ReadWrite User.Read offline_access"
+
+
+class Fail(Exception):
+    def __init__(self, msg, kind="graph"):
+        super().__init__(msg)
+        self.kind = kind
+
+
+def out(obj):
+    print(json.dumps(obj, ensure_ascii=False), flush=True)
+
+
+def write_private(path, data):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        json.dump(data, f, ensure_ascii=False)
+    os.replace(tmp, path)
+
+
+def read_json(path):
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def config():
+    c = read_json(CFG)
+    cid = os.environ.get("MSTODO_CLIENT_ID") or c.get("client_id")
+    tenant = os.environ.get("MSTODO_TENANT") or c.get("tenant") or "organizations"
+    if not cid:
+        raise Fail("Not set up. Run: mstodo setup --client-id <Entra app client id> --tenant <tenant id>", "config")
+    return cid, tenant
+
+
+def post_form(url, fields):
+    req = urllib.request.Request(url, data=urllib.parse.urlencode(fields).encode(), method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        try:
+            return json.load(e)
+        except ValueError:
+            raise Fail(f"HTTP {e.code} from sign-in endpoint", "auth")
+    except urllib.error.URLError as e:
+        raise Fail(f"offline: {e.reason}", "network")
+
+
+def authority(tenant):
+    return f"https://login.microsoftonline.com/{urllib.parse.quote(tenant)}/oauth2/v2.0"
+
+
+def save_token(res, prev=None):
+    tok = {
+        "access_token": res["access_token"],
+        "refresh_token": res.get("refresh_token") or (prev or {}).get("refresh_token"),
+        "expires_at": time.time() + int(res.get("expires_in", 3600)) - 120,
+        "account": (prev or {}).get("account", ""),
+    }
+    write_private(TOKEN, tok)
+    return tok
+
+
+def access_token():
+    tok = read_json(TOKEN)
+    if not tok.get("refresh_token"):
+        raise Fail("Not signed in", "auth")
+    if tok.get("access_token") and tok.get("expires_at", 0) > time.time():
+        return tok["access_token"]
+    cid, tenant = config()
+    res = post_form(authority(tenant) + "/token", {
+        "grant_type": "refresh_token", "client_id": cid,
+        "refresh_token": tok["refresh_token"], "scope": SCOPE})
+    if "access_token" not in res:
+        raise Fail("Sign-in expired, please sign in again (" + res.get("error", "?") + ")", "auth")
+    return save_token(res, tok)["access_token"]
+
+
+def graph(method, path, body=None):
+    url = path if path.startswith("http") else GRAPH + path
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(url, data=data, method=method, headers={
+        "Authorization": "Bearer " + access_token(), "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            raw = r.read()
+            return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as e:
+        if e.code == 401:
+            raise Fail("Sign-in rejected by Microsoft Graph, please sign in again", "auth")
+        raise Fail(f"Graph {method} -> {e.code}: {e.read()[:300].decode(errors='replace')}", "graph")
+    except urllib.error.URLError as e:
+        raise Fail(f"offline: {e.reason}", "network")
+
+
+def paged(path):
+    items = []
+    while path:
+        page = graph("GET", path)
+        items += page.get("value", [])
+        path = page.get("@odata.nextLink")
+    return items
+
+
+# ---------------------------------------------------------------- commands
+
+def cmd_setup(args):
+    if "--client-id" not in args:
+        raise Fail("usage: mstodo setup --client-id ID [--tenant TENANT]", "usage")
+    c = read_json(CFG)
+    c["client_id"] = args[args.index("--client-id") + 1]
+    if "--tenant" in args:
+        c["tenant"] = args[args.index("--tenant") + 1]
+    c.setdefault("tenant", "organizations")
+    write_private(CFG, c)
+    out({"ok": True, "config": str(CFG)})
+
+
+def cmd_status(args):
+    try:
+        config()
+        configured = True
+    except Fail:
+        configured = False
+    tok = read_json(TOKEN)
+    out({"configured": configured, "signedIn": bool(tok.get("refresh_token")),
+         "account": tok.get("account", "")})
+
+
+def cmd_login(args):
+    cid, tenant = config()
+    flow = post_form(authority(tenant) + "/devicecode", {"client_id": cid, "scope": SCOPE})
+    if "device_code" not in flow:
+        raise Fail(flow.get("error_description", "could not start sign-in").split("\r\n")[0], "auth")
+    out({"code": flow["user_code"], "url": flow["verification_uri"], "expiresIn": int(flow["expires_in"])})
+    interval = int(flow.get("interval", 5))
+    deadline = time.time() + int(flow["expires_in"])
+    while time.time() < deadline:
+        time.sleep(interval)
+        res = post_form(authority(tenant) + "/token", {
+            "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+            "client_id": cid, "device_code": flow["device_code"]})
+        err = res.get("error")
+        if err == "authorization_pending":
+            continue
+        if err == "slow_down":
+            interval += 5
+            continue
+        if err:
+            raise Fail(res.get("error_description", err).split("\r\n")[0], "auth")
+        save_token(res)
+        try:
+            me = graph("GET", "/me?$select=userPrincipalName,displayName")
+            tok = read_json(TOKEN)
+            tok["account"] = me.get("userPrincipalName") or me.get("displayName", "")
+            write_private(TOKEN, tok)
+        except Fail:
+            pass
+        out({"ok": True, "account": read_json(TOKEN).get("account", "")})
+        return
+    raise Fail("Sign-in code expired, try again", "auth")
+
+
+def cmd_logout(args):
+    try:
+        TOKEN.unlink()
+    except FileNotFoundError:
+        pass
+    try:
+        CACHE.unlink()
+    except FileNotFoundError:
+        pass
+    out({"ok": True})
+
+
+def task_row(t):
+    due = (t.get("dueDateTime") or {}).get("dateTime", "")[:10]
+    return {"id": t["id"], "title": t.get("title", ""), "due": due,
+            "importance": t.get("importance", "normal"),
+            "done": t.get("status") == "completed"}
+
+
+def cmd_tasks(args):
+    want = []
+    if "--lists" in args:
+        want = [s.strip() for s in args[args.index("--lists") + 1].split(",") if s.strip()]
+    completed = "--completed" in args
+    try:
+        lists = paged("/me/todo/lists?$top=100")
+        result = []
+        for l in lists:
+            name = l.get("displayName", "")
+            if want and name not in want:
+                continue
+            # Outlook's flagged-email list can hold thousands of items; only
+            # include it when asked for by name.
+            if not want and l.get("wellknownListName") == "flaggedEmails":
+                continue
+            # No $select: the To Do tasks endpoint rejects it (400 RequestBroker--ParseUri).
+            q = "$top=100"
+            if not completed:
+                q += "&$filter=" + urllib.parse.quote("status ne 'completed'")
+            tasks = [task_row(t) for t in paged(f"/me/todo/lists/{l['id']}/tasks?{q}")]
+            tasks.sort(key=lambda t: (t["done"], t["due"] or "9999", t["importance"] != "high", t["title"].lower()))
+            result.append({"id": l["id"], "name": name,
+                           "default": l.get("wellknownListName") == "defaultList", "tasks": tasks})
+        if want:
+            result.sort(key=lambda l: want.index(l["name"]))
+        doc = {"lists": result, "fetchedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+               "account": read_json(TOKEN).get("account", ""), "stale": False}
+        CACHE.parent.mkdir(parents=True, exist_ok=True)
+        CACHE.write_text(json.dumps(doc, ensure_ascii=False))
+        out(doc)
+    except Fail as e:
+        if e.kind == "network" and CACHE.exists():
+            doc = read_json(CACHE)
+            doc["stale"] = True
+            out(doc)
+            return
+        raise
+
+
+def cmd_done(args):
+    if len(args) < 2:
+        raise Fail("usage: mstodo done LIST_ID TASK_ID [--undo]", "usage")
+    status = "notStarted" if "--undo" in args else "completed"
+    t = graph("PATCH", f"/me/todo/lists/{args[0]}/tasks/{args[1]}", {"status": status})
+    out({"ok": True, "task": task_row(t)})
+
+
+def cmd_add(args):
+    if len(args) < 2 or not args[1].strip():
+        raise Fail("usage: mstodo add LIST_ID TITLE", "usage")
+    t = graph("POST", f"/me/todo/lists/{args[0]}/tasks", {"title": args[1].strip()})
+    out({"ok": True, "task": task_row(t)})
+
+
+COMMANDS = {"setup": cmd_setup, "status": cmd_status, "login": cmd_login, "logout": cmd_logout,
+            "tasks": cmd_tasks, "done": cmd_done, "add": cmd_add}
+
+
+def main(argv):
+    if not argv or argv[0] not in COMMANDS:
+        print(__doc__, file=sys.stderr)
+        out({"error": "unknown command", "kind": "usage"})
+        return 2
+    try:
+        COMMANDS[argv[0]](argv[1:])
+        return 0
+    except Fail as e:
+        out({"error": str(e), "kind": e.kind})
+        return 1
+    except KeyboardInterrupt:
+        return 130
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
